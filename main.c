@@ -7,20 +7,26 @@ typedef struct {
 } SentenceInfo;
 
 
+void writeToOutput(int dots, SentenceInfo sentenceInfo) {
+    FILE *file = fopen("output.txt", "w");
+    if (file == NULL) {
+        printf("Error opening file\n");
+        return;
+    }
+
+    fprintf(file, "%d\n", dots);
+    fprintf(file, "nr of characters: %d, nr of words: %d", sentenceInfo.charCount, sentenceInfo.wordCount);
+    fclose(file);
+}
+
+
 int countDots(FILE *fp) {
     rewind(fp);
     int counter = 0;
     int c;
     while ((c = fgetc(fp)) != EOF) {
         if (c == '.') {
-            int next = fgetc(fp);
-            if (next == ' ' || next == '\n' || next == EOF) {
-                counter++;
-            }
-
-            if (next != EOF) {
-                ungetc(next, fp); // undo the fgetc()
-            }
+            counter++;
         }
     }
     return counter;
@@ -33,20 +39,22 @@ SentenceInfo lastSentLen(FILE *fp) {
     long pos = ftell(fp) - 1;
 
     while (counter < 1 && pos > 0) {
-        fseek(fp, pos - 1, SEEK_SET);
-        int ch2 = fgetc(fp);
-        int ch  = fgetc(fp);
-        if ((ch2 == '.') && (ch == ' ' || ch == '\n'))
+        fseek(fp, pos, SEEK_SET);
+        int ch = fgetc(fp);
+
+        if (ch == '.') {
             counter++;
+        }
         pos--;
     }
 
     while (counter < 2 && pos > 0) {
-        fseek(fp, pos - 1, SEEK_SET);
-        int ch2 = fgetc(fp);
-        int ch  = fgetc(fp);
-        if ((ch2 == '.' || ch2 == '!' || ch2 == '?') && (ch == ' ' || ch == '\n'))
+        fseek(fp, pos, SEEK_SET);
+        int ch = fgetc(fp);
+
+        if (ch == '.') {
             counter++;
+        }
         pos--;
     }
 
@@ -65,11 +73,11 @@ SentenceInfo lastSentLen(FILE *fp) {
 
     int c = fgetc(fp);
 
-    while (c == '\n' || c == '\t' || c == ' '){
+    while (c != EOF && (c == '\n' || c == '\t' || c == ' ')){
         c = fgetc(fp);
     }
 
-    while ((c != EOF) &&(c != '?') && (c != '.') && (c != '!')){
+    while ((c != EOF) && (c != '?') && (c != '.') && (c != '!')){
         counterChar++;
 
 
@@ -89,7 +97,7 @@ SentenceInfo lastSentLen(FILE *fp) {
 
 
     SentenceInfo result;
-    result.charCount = counterChar;
+    result.charCount = counterChar + 1;
     result.wordCount = counter;
 
     return result;
@@ -113,6 +121,8 @@ int main(void) {
     int strSize = 0;
     int ch;
 
+    printf("enter the text: ");
+
     while ((ch = getchar()) != EOF) {
         char *temp = realloc(inputStr, strSize + 2);
         if (temp == NULL) {
@@ -127,6 +137,7 @@ int main(void) {
 
     if (inputStr != NULL) {
         fputs(inputStr, fp);
+        fputc('\n', fp);
     }
     else {
         printf("There is nothing to input!\n");
@@ -139,9 +150,9 @@ int main(void) {
     printf("There are %d declarative sentences in the file.\n", dots);
 
     SentenceInfo sentenceInfo = lastSentLen(fp);
-    printf("There are %d characters in the last sentence and %d words.", sentenceInfo.charCount, sentenceInfo.wordCount);
+    printf("There are %d characters in the last declarative sentence and %d words.", sentenceInfo.charCount, sentenceInfo.wordCount);
 
-
+    writeToOutput(dots, sentenceInfo);
     fclose(fp);
     return 0;
 }
